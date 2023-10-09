@@ -32,8 +32,8 @@ class ChartQADataset(Dataset):
     def __init__(self, image_dir, csv_dir):
         self.image_dir = image_dir
         self.csv_dir = csv_dir
-        self.image_filenames = sorted(os.listdir(self.image_dir))[:5]
-        self.csv_filenames = sorted(os.listdir(self.csv_dir))[:5]
+        self.image_filenames = sorted(os.listdir(self.image_dir))
+        self.csv_filenames = sorted(os.listdir(self.csv_dir))
         assert len(self.image_filenames) == len(self.csv_filenames), "Number of images and CSV files do not match!"
 
     def __len__(self):
