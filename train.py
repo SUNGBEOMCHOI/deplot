@@ -67,8 +67,8 @@ class PublicOCRDataset(Dataset):
     def __init__(self, image_dir, json_dir):
         self.image_dir = image_dir
         self.json_dir = json_dir
-        self.image_filenames = sorted(os.listdir(self.image_dir))[:10]
-        self.json_filenames = sorted(os.listdir(self.json_dir))[:10]
+        self.image_filenames = sorted(os.listdir(self.image_dir))
+        self.json_filenames = sorted(os.listdir(self.json_dir))
         assert len(self.image_filenames) == len(self.json_filenames), "Number of images and CSV files do not match!"
 
     def __len__(self):
@@ -191,7 +191,7 @@ def train(model, epochs=50, train_dataloader=None):
                 
                 # scheduler.step()
                 # if ((epoch + 1) % 20 == 0) and ((idx+1) % 100 == 0):
-                if ((epoch + 1) % 20 == 0):
+                if ((epoch + 1) % 2 == 0) and ((idx+1) % 100 == 0):
                     model.eval()
 
                     predictions = model.generate(flattened_patches=flattened_patches, attention_mask=attention_mask)
@@ -200,8 +200,8 @@ def train(model, epochs=50, train_dataloader=None):
                     print("---------labels---------\n", batch.pop("raw_labels")[0])
 
                     model.train()
-        # if (epoch + 1) % 50 == 0:
-        #     model.save_pretrained(f'{epoch+1}_model')
+        if (epoch + 1) % 4 == 0:
+            model.save_pretrained(f'{epoch+1}_model')
         with open('loss1.txt', 'a') as f:
             f.write("Loss:" + str(total_loss/len(train_dataloader)) + "\n")
     
@@ -311,8 +311,8 @@ if __name__ == "__main__":
     chartqa_test_csv_dir="/root/ChartQA/ChartQA Dataset/translate_test/tables"
     plotqa_train_image_dir="/root/PlotQA/data/translated_val/png"
     plotqa_train_csv_dir="/root/PlotQA/data/translated_val/csv"
-    plotqa_test_image_dir="/root/PlotQA/data/translated_val/png"
-    plotqa_test_csv_dir="/root/PlotQA/data/translated_val/csv"
+    plotqa_test_image_dir="/root/PlotQA/data/translated_test/png"
+    plotqa_test_csv_dir="/root/PlotQA/data/translated_test/csv"
     chartqa_train_dataset = ImageCaptioningDataset(chartqa_train_image_dir, chartqa_train_csv_dir, processor)
     plotqa_train_dataset = ImageCaptioningDataset(plotqa_train_image_dir, plotqa_train_csv_dir, processor)
     train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset)
@@ -321,7 +321,7 @@ if __name__ == "__main__":
     plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
     test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset)
     test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    epochs = 100
+    epochs = 20
     train(model, epochs, train_dataloader)
     test(model, test_dataloader)
     #============================#
