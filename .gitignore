@@ -3,4 +3,9 @@ tutorials/
 data/
 final_model.zip
 final_model/
+long_ocr_model.zip
+short_ocr_model.zip
+long_ocr_model/
+short_ocr_model/
 loss.txt
+loss1.txt

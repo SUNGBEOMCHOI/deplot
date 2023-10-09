@@ -12,12 +12,28 @@ from transformers import Pix2StructProcessor, Pix2StructForConditionalGeneration
 from torch.utils.data import Dataset, DataLoader
 from transformers.optimization import Adafactor, get_cosine_schedule_with_warmup, AdafactorSchedule
 
+class CombinedDataset(Dataset):
+    def __init__(self, *datasets):
+        self.datasets = datasets
+
+    def __len__(self):
+        return sum(len(dataset) for dataset in self.datasets)
+
+    def __getitem__(self, idx):
+        # If idx is within the range of the first dataset, retrieve from the first dataset
+        if idx < len(self.datasets[0]):
+            return self.datasets[0][idx]
+        
+        # Otherwise, move to the next dataset and adjust the index
+        idx -= len(self.datasets[0])
+        return self.datasets[1][idx]
+
 class ChartQADataset(Dataset):
     def __init__(self, image_dir, csv_dir):
         self.image_dir = image_dir
         self.csv_dir = csv_dir
-        self.image_filenames = sorted(os.listdir(self.image_dir))
-        self.csv_filenames = sorted(os.listdir(self.csv_dir))
+        self.image_filenames = sorted(os.listdir(self.image_dir))[:5]
+        self.csv_filenames = sorted(os.listdir(self.csv_dir))[:5]
         assert len(self.image_filenames) == len(self.csv_filenames), "Number of images and CSV files do not match!"
 
     def __len__(self):
@@ -26,10 +42,10 @@ class ChartQADataset(Dataset):
     def __getitem__(self, idx):
         # Load image
         image_path = os.path.join(self.image_dir, self.image_filenames[idx])
+        csv_path = os.path.join(self.csv_dir, self.csv_filenames[idx])
         image = Image.open(image_path).convert("RGB")
 
         # Load csv content and replace commas with pipes
-        csv_path = os.path.join(self.csv_dir, self.csv_filenames[idx])
         with open(csv_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
             for i, line in enumerate(lines):
@@ -40,6 +56,7 @@ class ChartQADataset(Dataset):
                 lines[i] = line
 
             text = ''.join(lines)
+            text = text.replace('"', '')
 
         return {
             "image": image,
@@ -50,8 +67,8 @@ class PublicOCRDataset(Dataset):
     def __init__(self, image_dir, json_dir):
         self.image_dir = image_dir
         self.json_dir = json_dir
-        self.image_filenames = sorted(os.listdir(self.image_dir))
-        self.json_filenames = sorted(os.listdir(self.json_dir))
+        self.image_filenames = sorted(os.listdir(self.image_dir))[:10]
+        self.json_filenames = sorted(os.listdir(self.json_dir))[:10]
         assert len(self.image_filenames) == len(self.json_filenames), "Number of images and CSV files do not match!"
 
     def __len__(self):
@@ -172,9 +189,9 @@ def train(model, epochs=50, train_dataloader=None):
                 optimizer.step()
                 optimizer.zero_grad()
                 
-
                 # scheduler.step()
-                if (epoch + 1) % 2 == 0:
+                # if ((epoch + 1) % 20 == 0) and ((idx+1) % 100 == 0):
+                if ((epoch + 1) % 20 == 0):
                     model.eval()
 
                     predictions = model.generate(flattened_patches=flattened_patches, attention_mask=attention_mask)
@@ -183,9 +200,9 @@ def train(model, epochs=50, train_dataloader=None):
                     print("---------labels---------\n", batch.pop("raw_labels")[0])
 
                     model.train()
-        if (epoch + 1) % 4 == 0:
-            model.save_pretrained(f'{epoch+1}_model')
-        with open('loss.txt', 'a') as f:
+        # if (epoch + 1) % 50 == 0:
+        #     model.save_pretrained(f'{epoch+1}_model')
+        with open('loss1.txt', 'a') as f:
             f.write("Loss:" + str(total_loss/len(train_dataloader)) + "\n")
     
 
@@ -248,7 +265,7 @@ def test(model, dataloader):
         flattened_patches = batch.pop("flattened_patches").to(device)
         attention_mask = batch.pop("attention_mask").to(device)
 
-        predictions = model.generate(flattened_patches=flattened_patches, attention_mask=attention_mask, max_new_tokens=512)
+        predictions = model.generate(flattened_patches=flattened_patches, attention_mask=attention_mask, max_length=512)
         decoded_predictions = processor.batch_decode(predictions, skip_special_tokens=True)
         prediction = decoded_predictions[0]
         label = batch.pop("raw_labels")[0]
@@ -267,7 +284,8 @@ if __name__ == "__main__":
     # processor = Pix2StructProcessor.from_pretrained('google/deplot')
     # model = Pix2StructForConditionalGeneration.from_pretrained('google/deplot').to(device)
     processor = Pix2StructProcessor.from_pretrained('./final_model')
-    model = Pix2StructForConditionalGeneration.from_pretrained('./final_model').to(device)
+    # model = Pix2StructForConditionalGeneration.from_pretrained('./final_model').to(device)
+    model = Pix2StructForConditionalGeneration.from_pretrained('./long_ocr_model').to(device)
     processor.image_processor.is_vqa = False
 
     # for ChartQA
@@ -285,18 +303,41 @@ if __name__ == "__main__":
     # test(model, test_dataloader)
     #============================#
 
-    # for Public OCR
+    # for ChartQA & PlotQA
     #============================#
-    train_image_dir="/root/공공행정문서 OCR/process_Validation/jpg"
-    train_json_dir="/root/공공행정문서 OCR/process_Validation/json"
-    test_image_dir="/root/공공행정문서 OCR/split_process_Validation/jpg"
-    test_json_dir="/root/공공행정문서 OCR/split_process_Validation/json"
-    train_dataset = OCRDataset(train_image_dir, train_json_dir, processor)
+    chartqa_train_image_dir="/root/ChartQA/ChartQA Dataset/translate_train/png"
+    chartqa_train_csv_dir="/root/ChartQA/ChartQA Dataset/translate_train/tables"
+    chartqa_test_image_dir="/root/ChartQA/ChartQA Dataset/translate_test/png"
+    chartqa_test_csv_dir="/root/ChartQA/ChartQA Dataset/translate_test/tables"
+    plotqa_train_image_dir="/root/PlotQA/data/translated_val/png"
+    plotqa_train_csv_dir="/root/PlotQA/data/translated_val/csv"
+    plotqa_test_image_dir="/root/PlotQA/data/translated_val/png"
+    plotqa_test_csv_dir="/root/PlotQA/data/translated_val/csv"
+    chartqa_train_dataset = ImageCaptioningDataset(chartqa_train_image_dir, chartqa_train_csv_dir, processor)
+    plotqa_train_dataset = ImageCaptioningDataset(plotqa_train_image_dir, plotqa_train_csv_dir, processor)
+    train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
-    test_dataset = OCRDataset(test_image_dir, test_json_dir, processor)
+    chartqa_test_dataset = ImageCaptioningDataset(chartqa_test_image_dir, chartqa_test_csv_dir, processor)
+    plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
+    test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset)
     test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    epochs = 20
+    epochs = 100
     train(model, epochs, train_dataloader)
     test(model, test_dataloader)
+    #============================#
+
+    # for Public OCR
+    #============================#
+    # train_image_dir="/root/공공행정문서 OCR/long_process_Validation/jpg"
+    # train_json_dir="/root/공공행정문서 OCR/long_process_Validation/json"
+    # test_image_dir="/root/공공행정문서 OCR/split_long_process_Validation/jpg"
+    # test_json_dir="/root/공공행정문서 OCR/split_long_process_Validation/json"
+    # train_dataset = OCRDataset(train_image_dir, train_json_dir, processor)
+    # train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
+    # test_dataset = OCRDataset(test_image_dir, test_json_dir, processor)
+    # test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
+    # epochs = 8
+    # train(model, epochs, train_dataloader)
+    # test(model, test_dataloader)
     #============================#
     

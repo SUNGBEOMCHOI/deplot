@@ -5,7 +5,7 @@ import random
 import tqdm
 from PIL import Image, ImageDraw
 
-def process_json_and_image(json_path, img_path, target_directory):
+def process_json_and_image(json_path, img_path, target_directory, min_char_num=20, max_char_num=60):
     with open(json_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
         
@@ -16,7 +16,7 @@ def process_json_and_image(json_path, img_path, target_directory):
     current_chunk = []
     current_chars = 0
     
-    split_chars_num = random.randint(20, 60)
+    split_chars_num = random.randint(min_char_num, max_char_num)
     for ann in annotations:
         text = ann["annotation.text"]
         if current_chars + len(text) <= split_chars_num:
@@ -26,7 +26,7 @@ def process_json_and_image(json_path, img_path, target_directory):
             chunks.append(current_chunk)
             current_chunk = [ann]
             current_chars = len(text)
-            split_chars_num = random.randint(20, 60)
+            split_chars_num = random.randint(min_char_num, max_char_num)
 
     if current_chunk:
         chunks.append(current_chunk)
@@ -67,7 +67,8 @@ def process_json_and_image(json_path, img_path, target_directory):
 if __name__ == "__main__":
     # 시작 디렉토리
     base_directory = "/root/공공행정문서 OCR/Validation"  # 변경해주세요
-    target_directory = "/root/공공행정문서 OCR/process_Validation"  # 변경해주세요
+    target_directory = "/root/공공행정문서 OCR/long_process_Validation"  # 변경해주세요
+    min_char_num, max_char_num = 60, 180  # 변경해주세요
 
     # 결과를 저장할 폴더 만들기
     os.makedirs(os.path.join(target_directory, "json"), exist_ok=True)
@@ -80,4 +81,4 @@ if __name__ == "__main__":
                 category_path = os.path.relpath(root, base_directory).split(os.path.sep)[1:]
                 corresponding_jpg_path = os.path.join(base_directory, "02.원천데이터(Jpg)", *category_path, filename.replace(".json", ".jpg"))
                 if os.path.exists(corresponding_jpg_path):
-                    process_json_and_image(os.path.join(root, filename), corresponding_jpg_path, target_directory)
+                    process_json_and_image(os.path.join(root, filename), corresponding_jpg_path, target_directory, min_char_num, max_char_num)

@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # 두 폴더의 경로를 지정합니다.
-jpg_folder="/root/공공행정문서 OCR/process_Validation/jpg"
-json_folder="/root/공공행정문서 OCR/process_Validation/json"
+jpg_folder="/root/공공행정문서 OCR/long_process_Validation/jpg"
+json_folder="/root/공공행정문서 OCR/long_process_Validation/json"
 
 # 이동할 폴더의 경로를 지정합니다.
-target_jpg_folder="/root/공공행정문서 OCR/split_process_Validation/jpg"
-target_json_folder="/root/공공행정문서 OCR/split_process_Validation/json"
+target_jpg_folder="/root/공공행정문서 OCR/split_long_process_Validation/jpg"
+target_json_folder="/root/공공행정문서 OCR/split_long_process_Validation/json"
 
 # 대상 폴더가 없으면 생성합니다.
 mkdir -p "$target_jpg_folder"
