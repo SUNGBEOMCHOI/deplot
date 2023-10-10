@@ -9,3 +9,5 @@ long_ocr_model/
 short_ocr_model/
 loss.txt
 loss1.txt
+*.png
+chartqa+plotqa_1/

@@ -105,7 +105,6 @@ class ImageCaptioningDataset(Dataset):
     def __getitem__(self, idx):
         item = self.dataset[idx]
         encoding = self.processor(images=item["image"], text="Generate underlying data table of the figure below:", return_tensors="pt", add_special_tokens=True, max_patches=MAX_PATCHES)
-        
         encoding = {k: v.squeeze() for k, v in encoding.items()}
         encoding["text"] = item["text"]
         return encoding
@@ -130,11 +129,10 @@ def collator(batch):
     new_batch = {"flattened_patches":[], "attention_mask":[]}
     texts = [item["text"] for item in batch]
 
-    text_inputs = processor(text=texts, padding="max_length", return_tensors="pt", add_special_tokens=True, max_length=200, truncation=True)
+    text_inputs = processor.tokenizer(text=texts, padding="max_length", return_tensors="pt", add_special_tokens=True, max_length=200, truncation=True)
 
     new_batch['raw_labels'] = texts
     new_batch["labels"] = text_inputs.input_ids
-
 
     for item in batch:
         new_batch["flattened_patches"].append(item["flattened_patches"])
@@ -285,8 +283,8 @@ if __name__ == "__main__":
     # model = Pix2StructForConditionalGeneration.from_pretrained('google/deplot').to(device)
     processor = Pix2StructProcessor.from_pretrained('./final_model')
     # model = Pix2StructForConditionalGeneration.from_pretrained('./final_model').to(device)
-    model = Pix2StructForConditionalGeneration.from_pretrained('./long_ocr_model').to(device)
-    processor.image_processor.is_vqa = False
+    model = Pix2StructForConditionalGeneration.from_pretrained('./chartqa+plotqa_1').to(device)
+    processor.image_processor.is_vqa = True
 
     # for ChartQA
     #============================#
@@ -321,7 +319,7 @@ if __name__ == "__main__":
     plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
     test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset)
     test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    epochs = 20
+    epochs = 12
     train(model, epochs, train_dataloader)
     test(model, test_dataloader)
     #============================#
