@@ -15,18 +15,21 @@ from transformers.optimization import Adafactor, get_cosine_schedule_with_warmup
 class CombinedDataset(Dataset):
     def __init__(self, *datasets):
         self.datasets = datasets
+        self.dataset_lengths = [len(dataset) for dataset in datasets]
+        self.cumulative_lengths = np.cumsum(self.dataset_lengths)
 
     def __len__(self):
-        return sum(len(dataset) for dataset in self.datasets)
+        return self.cumulative_lengths[-1]
 
     def __getitem__(self, idx):
-        # If idx is within the range of the first dataset, retrieve from the first dataset
-        if idx < len(self.datasets[0]):
-            return self.datasets[0][idx]
+        # Find the dataset which contains the item at the current index
+        dataset_index = next(i for i, cumulative_length in enumerate(self.cumulative_lengths) if idx < cumulative_length)
         
-        # Otherwise, move to the next dataset and adjust the index
-        idx -= len(self.datasets[0])
-        return self.datasets[1][idx]
+        # If not the first dataset, adjust the index
+        if dataset_index > 0:
+            idx -= self.cumulative_lengths[dataset_index - 1]
+        
+        return self.datasets[dataset_index][idx]
 
 class ChartQADataset(Dataset):
     def __init__(self, image_dir, csv_dir):
