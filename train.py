@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import difflib
 
@@ -30,6 +31,39 @@ class CombinedDataset(Dataset):
             idx -= self.cumulative_lengths[dataset_index - 1]
         
         return self.datasets[dataset_index][idx]
+
+class ChartToTableDataset(Dataset):
+    def __init__(self, image_dir, txt_dir):
+        self.image_dir = image_dir
+        self.txt_dir = txt_dir
+        self.image_filenames = sorted(os.listdir(self.image_dir))
+        self.txt_filenames = sorted(os.listdir(self.txt_dir))
+        assert len(self.image_filenames) == len(self.txt_filenames), "Number of images and TXT files do not match!"
+
+    def __len__(self):
+        return len(self.image_filenames)
+
+    def __getitem__(self, idx):
+        # Load image
+        image_path = os.path.join(self.image_dir, self.image_filenames[idx])
+        txt_path = os.path.join(self.txt_dir, self.txt_filenames[idx])
+        image = Image.open(image_path).convert("RGB")
+        with open(txt_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            # Don't replace commas in the header
+            line = line.replace('\n', ' <0x0A> ')
+            line = re.sub(r'\s+\|', ' |', line)
+            line = re.sub(r'\|\s+', '| ', line)
+            lines[i] = line
+
+        text = ''.join(lines)
+
+        return {
+            "image": image,
+            "text": text
+        }
+
 
 class ChartQADataset(Dataset):
     def __init__(self, image_dir, csv_dir):
@@ -112,6 +146,21 @@ class ImageCaptioningDataset(Dataset):
         encoding["text"] = item["text"]
         return encoding
 
+class MixedChartToTableDataset(Dataset):
+    def __init__(self, image_dir, txt_dir, processor):
+        self.dataset = ChartToTableDataset(image_dir, txt_dir)
+        self.processor = processor
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        item = self.dataset[idx]
+        encoding = self.processor(images=item["image"], text="Generate underlying data table of the figure below:", return_tensors="pt", add_special_tokens=True, max_patches=MAX_PATCHES)
+        encoding = {k: v.squeeze() for k, v in encoding.items()}
+        encoding["text"] = item["text"]
+        return encoding
+
 class OCRDataset(Dataset):
     def __init__(self, image_dir, json_dir, processor):
         self.dataset = PublicOCRDataset(image_dir, json_dir)
@@ -153,8 +202,6 @@ accelerator = Accelerator(gradient_accumulation_steps = 8)
 
 def train(model, epochs=50, train_dataloader=None):
     optimizer = Adafactor(model.parameters(), scale_parameter=False, relative_step=False, lr=0.0001, weight_decay=1e-05)
-    # scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=int(len(train_dataset)*epochs*0.15), num_training_steps=len(train_dataset)*epochs)
-    # scheduler = AdafactorSchedule(optimizer)
     model, optimizer, train_dataloader = accelerator.prepare(
         model, optimizer, train_dataloader
     )
@@ -165,9 +212,6 @@ def train(model, epochs=50, train_dataloader=None):
         total_loss = 0
         for idx, batch in enumerate(tqdm.tqdm(train_dataloader)):
             with accelerator.accumulate(model):
-                # labels = batch.pop("labels").to(device)
-                # flattened_patches = batch.pop("flattened_patches").to(device)
-                # attention_mask = batch.pop("attention_mask").to(device)
                 labels = batch.pop("labels")
                 flattened_patches = batch.pop("flattened_patches")
                 attention_mask = batch.pop("attention_mask")
@@ -177,22 +221,15 @@ def train(model, epochs=50, train_dataloader=None):
                                 labels=labels)
 
                 loss = outputs.loss
-                # loss = loss / gradient_accumulation_steps # +
-                # print("Loss:", loss.item())
                 total_loss += loss.item()
 
-
-                # loss.backward()
-                # optimizer.step()
-                # optimizer.zero_grad()
                 accelerator.backward(loss)
-                # if (idx+1) % gradient_accumulation_steps == 0:
                 optimizer.step()
                 optimizer.zero_grad()
                 
                 # scheduler.step()
                 # if ((epoch + 1) % 20 == 0) and ((idx+1) % 100 == 0):
-                if ((epoch + 1) % 2 == 0) and ((idx+1) % 100 == 0):
+                if ((epoch + 1) % 1 == 0) and ((idx+1) % 100 == 0):
                     model.eval()
 
                     predictions = model.generate(flattened_patches=flattened_patches, attention_mask=attention_mask)
@@ -201,7 +238,7 @@ def train(model, epochs=50, train_dataloader=None):
                     print("---------labels---------\n", batch.pop("raw_labels")[0])
 
                     model.train()
-        if (epoch + 1) % 4 == 0:
+        if (epoch + 1) % 1 == 0:
             model.save_pretrained(f'{epoch+1}_model')
         with open('loss1.txt', 'a') as f:
             f.write("Loss:" + str(total_loss/len(train_dataloader)) + "\n")
@@ -286,7 +323,7 @@ if __name__ == "__main__":
     # model = Pix2StructForConditionalGeneration.from_pretrained('google/deplot').to(device)
     processor = Pix2StructProcessor.from_pretrained('./final_model')
     # model = Pix2StructForConditionalGeneration.from_pretrained('./final_model').to(device)
-    model = Pix2StructForConditionalGeneration.from_pretrained('./chartqa+plotqa_1').to(device)
+    model = Pix2StructForConditionalGeneration.from_pretrained('./chartqa+plotqa_2').to(device)
     processor.image_processor.is_vqa = True
 
     # for ChartQA
@@ -304,25 +341,34 @@ if __name__ == "__main__":
     # test(model, test_dataloader)
     #============================#
 
-    # for ChartQA & PlotQA
+    # for ChartQA & PlotQA & ChartToTable
     #============================#
     chartqa_train_image_dir="/root/ChartQA/ChartQA Dataset/translate_train/png"
     chartqa_train_csv_dir="/root/ChartQA/ChartQA Dataset/translate_train/tables"
     chartqa_test_image_dir="/root/ChartQA/ChartQA Dataset/translate_test/png"
     chartqa_test_csv_dir="/root/ChartQA/ChartQA Dataset/translate_test/tables"
-    plotqa_train_image_dir="/root/PlotQA/data/translated_val/png"
-    plotqa_train_csv_dir="/root/PlotQA/data/translated_val/csv"
+    plotqa_train_image_dir="/root/PlotQA/data/translated_train/png"
+    plotqa_train_csv_dir="/root/PlotQA/data/translated_train/csv"
     plotqa_test_image_dir="/root/PlotQA/data/translated_test/png"
     plotqa_test_csv_dir="/root/PlotQA/data/translated_test/csv"
+    charttotable_train_image_dir="/root/chart-to-table/data/train/png"
+    charttotable_train_txt_dir="/root/chart-to-table/data/train/txt"
+    charttotable_mix_train_image_dir="/root/chart-to-table-mix/data/train/png"
+    charttotable_mix_train_txt_dir="/root/chart-to-table-mix/data/train/txt"
+    charttotable_mix_test_image_dir="/root/chart-to-table-mix/data/test/png"
+    charttotable_mix_test_txt_dir="/root/chart-to-table-mix/data/test/txt"
     chartqa_train_dataset = ImageCaptioningDataset(chartqa_train_image_dir, chartqa_train_csv_dir, processor)
     plotqa_train_dataset = ImageCaptioningDataset(plotqa_train_image_dir, plotqa_train_csv_dir, processor)
-    train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset)
+    charttotable_train_dataset = MixedChartToTableDataset(charttotable_train_image_dir, charttotable_train_txt_dir, processor)
+    charttotable_mix_train_dataset = MixedChartToTableDataset(charttotable_train_image_dir, charttotable_train_txt_dir, processor)
+    train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset, charttotable_train_dataset, charttotable_mix_train_dataset)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
     chartqa_test_dataset = ImageCaptioningDataset(chartqa_test_image_dir, chartqa_test_csv_dir, processor)
     plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
-    test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset)
+    charttotable_mix_test_dataset = MixedChartToTableDataset(charttotable_mix_test_image_dir, charttotable_mix_test_txt_dir, processor)
+    test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset, charttotable_mix_test_dataset)
     test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    epochs = 12
+    epochs = 20
     train(model, epochs, train_dataloader)
     test(model, test_dataloader)
     #============================#

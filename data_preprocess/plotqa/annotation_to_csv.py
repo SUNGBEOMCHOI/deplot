@@ -107,8 +107,8 @@ def convert_json_to_csv(json_file_path, output_directory):
         df_pivot.to_csv(output_file_path, index=False, header=True, quoting=csv.QUOTE_NONNUMERIC)
 
 if __name__ == "__main__":
-    json_file_path = '/root/PlotQA/data/translated_test/annotations.json'
-    output_directory = '/root/PlotQA/data/translated_test/csv/'
+    json_file_path = '/root/PlotQA/data/translated_train/annotations.json'
+    output_directory = '/root/PlotQA/data/translated_train/csv/'
     
     # Check if directory exists, if not, create it
     if not os.path.exists(output_directory):
