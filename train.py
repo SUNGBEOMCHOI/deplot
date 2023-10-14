@@ -313,6 +313,8 @@ def test(model, dataloader):
         print("---------Predictions---------\n", prediction)
         print('\n')
         print("---------labels---------\n", label)
+        if idx == 300:
+            break
 
     accuracy = compute_accuracy(all_predictions, all_labels)
     print(f"RNSS: {accuracy :.2f}")
@@ -323,7 +325,7 @@ if __name__ == "__main__":
     # model = Pix2StructForConditionalGeneration.from_pretrained('google/deplot').to(device)
     processor = Pix2StructProcessor.from_pretrained('./final_model')
     # model = Pix2StructForConditionalGeneration.from_pretrained('./final_model').to(device)
-    model = Pix2StructForConditionalGeneration.from_pretrained('./chartqa+plotqa_2').to(device)
+    model = Pix2StructForConditionalGeneration.from_pretrained('./2_model').to(device)
     processor.image_processor.is_vqa = True
 
     # for ChartQA
@@ -343,10 +345,10 @@ if __name__ == "__main__":
 
     # for ChartQA & PlotQA & ChartToTable
     #============================#
-    chartqa_train_image_dir="/root/ChartQA/ChartQA Dataset/translate_train/png"
-    chartqa_train_csv_dir="/root/ChartQA/ChartQA Dataset/translate_train/tables"
-    chartqa_test_image_dir="/root/ChartQA/ChartQA Dataset/translate_test/png"
-    chartqa_test_csv_dir="/root/ChartQA/ChartQA Dataset/translate_test/tables"
+    chartqa_train_image_dir="/root/ChartQA/ChartQA Dataset/train/png"
+    chartqa_train_csv_dir="/root/ChartQA/ChartQA Dataset/train/tables"
+    chartqa_test_image_dir="/root/ChartQA/ChartQA Dataset/test/png"
+    chartqa_test_csv_dir="/root/ChartQA/ChartQA Dataset/test/tables"
     plotqa_train_image_dir="/root/PlotQA/data/translated_train/png"
     plotqa_train_csv_dir="/root/PlotQA/data/translated_train/csv"
     plotqa_test_image_dir="/root/PlotQA/data/translated_test/png"
@@ -359,18 +361,21 @@ if __name__ == "__main__":
     charttotable_mix_test_txt_dir="/root/chart-to-table-mix/data/test/txt"
     chartqa_train_dataset = ImageCaptioningDataset(chartqa_train_image_dir, chartqa_train_csv_dir, processor)
     plotqa_train_dataset = ImageCaptioningDataset(plotqa_train_image_dir, plotqa_train_csv_dir, processor)
-    charttotable_train_dataset = MixedChartToTableDataset(charttotable_train_image_dir, charttotable_train_txt_dir, processor)
-    charttotable_mix_train_dataset = MixedChartToTableDataset(charttotable_train_image_dir, charttotable_train_txt_dir, processor)
-    train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset, charttotable_train_dataset, charttotable_mix_train_dataset)
+    # charttotable_train_dataset = MixedChartToTableDataset(charttotable_train_image_dir, charttotable_train_txt_dir, processor)
+    # charttotable_mix_train_dataset = MixedChartToTableDataset(charttotable_train_image_dir, charttotable_train_txt_dir, processor)
+    # train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset, charttotable_train_dataset, charttotable_mix_train_dataset)
+    train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset)
     train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
     chartqa_test_dataset = ImageCaptioningDataset(chartqa_test_image_dir, chartqa_test_csv_dir, processor)
     plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
-    charttotable_mix_test_dataset = MixedChartToTableDataset(charttotable_mix_test_image_dir, charttotable_mix_test_txt_dir, processor)
-    test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset, charttotable_mix_test_dataset)
-    test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
+    # charttotable_mix_test_dataset = MixedChartToTableDataset(charttotable_mix_test_image_dir, charttotable_mix_test_txt_dir, processor)
+    # test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset, charttotable_mix_test_dataset)
+    # test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset)
+    chartqa_test_dataloader = DataLoader(chartqa_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
+    plotqa_test_dataloader = DataLoader(plotqa_test_dataset, shuffle=True, batch_size=1, collate_fn=collator, num_workers=4)
     epochs = 20
-    train(model, epochs, train_dataloader)
-    test(model, test_dataloader)
+    # train(model, epochs, train_dataloader)
+    test(model, plotqa_test_dataloader)
     #============================#
 
     # for Public OCR

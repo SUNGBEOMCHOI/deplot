@@ -66,7 +66,7 @@ def convert_json_to_csv(json_file_path, output_directory):
                         if x.is_integer():
                             x = int(x)  # float 값을 정수로 변환
                         else:
-                            x = round(x, 3)                        
+                            x = round(x, 3) 
                     rows.append({'특성': label, 'X': x, 'Y': y})
 
 
@@ -77,8 +77,8 @@ def convert_json_to_csv(json_file_path, output_directory):
                     label = general_figure_info['title']['text']
                 else:
                     label = model['name']
-                x_values = model['x']
-                y_values = model['y']
+                x_values = general_figure_info['y_axis']['major_labels']['values']
+                y_values = model['x']
 
                 for x, y in zip(x_values, y_values):
                     if isinstance(x, float):
@@ -91,7 +91,7 @@ def convert_json_to_csv(json_file_path, output_directory):
                             y = int(y)  # float 값을 정수로 변환
                         else:
                             y = round(y, 3)
-                    rows.append({'특성': label, 'X': y, 'Y': x})
+                    rows.append({'특성': label, 'X': x, 'Y': y})
         else:
             raise ValueError(f"Unknown type: {data['type']}")
 
