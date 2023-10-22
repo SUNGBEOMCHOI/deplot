@@ -4,10 +4,10 @@ data/
 final_model/
 long_ocr_model/
 short_ocr_model/
-loss.txt
-loss1.txt
+*.txt
 *.png
 chartqa+plotqa_*/
 chartqa_plotqa_*/
 *_model/
 *.zip
+ocr_test/
