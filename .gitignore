@@ -11,3 +11,6 @@ chartqa_plotqa_*/
 *_model/
 *.zip
 ocr_test/
+only_graph_label/
+only_graph/
+PlotQA/

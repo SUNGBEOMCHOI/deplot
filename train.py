@@ -277,7 +277,7 @@ def train(model, epochs=50, train_dataloader=None):
                 flattened_patches = batch.pop("flattened_patches")
                 attention_mask = batch.pop("attention_mask")
 
-                if ((epoch + 1) % 1 == 0) and ((idx+1) % 100 == 0):
+                if ((epoch + 1) % 10 == 0) and ((idx+1) % 100 == 0):
                     model.eval()
 
                     predictions = model.generate(flattened_patches=flattened_patches, attention_mask=attention_mask)
@@ -301,9 +301,9 @@ def train(model, epochs=50, train_dataloader=None):
                 # scheduler.step()
                 # if ((epoch + 1) % 20 == 0) and ((idx+1) % 100 == 0):
                 
-        if (epoch + 1) % 1 == 0:
+        if (epoch + 10) % 1 == 0:
             model.save_pretrained(f'{epoch+1}_model')
-        with open('kostat_plotqa_loss.txt', 'a') as f:
+        with open('kostat_graph_loss.txt', 'a') as f:
             f.write("Loss:" + str(total_loss/len(train_dataloader)) + "\n")
     
 
@@ -388,7 +388,7 @@ if __name__ == "__main__":
     # model = Pix2StructForConditionalGeneration.from_pretrained('./final_model').to(device)
     # model = Pix2StructForConditionalGeneration.from_pretrained('./chartqa_plotqa_5').to(device)
     # model = Pix2StructForConditionalGeneration.from_pretrained('./kostat_ocr_model').to(device)
-    model = Pix2StructForConditionalGeneration.from_pretrained('./2_model').to(device)
+    model = Pix2StructForConditionalGeneration.from_pretrained('./24_model').to(device)
     processor.image_processor.is_vqa = True
 
     # for ChartQA
@@ -412,10 +412,10 @@ if __name__ == "__main__":
     # chartqa_train_csv_dir="/root/ChartQA/ChartQA Dataset/train/tables"
     # chartqa_test_image_dir="/root/ChartQA/ChartQA Dataset/test/png"
     # chartqa_test_csv_dir="/root/ChartQA/ChartQA Dataset/test/tables"
-    plotqa_train_image_dir="/root/PlotQA/data/translated_train/png"
-    plotqa_train_csv_dir="/root/PlotQA/data/translated_train/csv"
-    plotqa_test_image_dir="/root/PlotQA/data/translated_test/png"
-    plotqa_test_csv_dir="/root/PlotQA/data/translated_test/csv"
+    # plotqa_train_image_dir="/root/PlotQA/data/translated_train/png"
+    # plotqa_train_csv_dir="/root/PlotQA/data/translated_train/csv"
+    # plotqa_test_image_dir="/root/PlotQA/data/translated_test/png"
+    # plotqa_test_csv_dir="/root/PlotQA/data/translated_test/csv"
     # charttotable_train_image_dir="/root/chart-to-table/data/train/png"
     # charttotable_train_txt_dir="/root/chart-to-table/data/train/txt"
     # charttotable_mix_train_image_dir="/root/chart-to-table-mix/data/train/png"
@@ -423,21 +423,21 @@ if __name__ == "__main__":
     # charttotable_mix_test_image_dir="/root/chart-to-table-mix/data/test/png"
     # charttotable_mix_test_txt_dir="/root/chart-to-table-mix/data/test/txt"
     # chartqa_train_dataset = ImageCaptioningDataset(chartqa_train_image_dir, chartqa_train_csv_dir, processor)
-    plotqa_train_dataset = ImageCaptioningDataset(plotqa_train_image_dir, plotqa_train_csv_dir, processor)
+    # plotqa_train_dataset = ImageCaptioningDataset(plotqa_train_image_dir, plotqa_train_csv_dir, processor)
     # charttotable_train_dataset = MixedChartToTableDataset(charttotable_train_image_dir, charttotable_train_txt_dir, processor)
     # charttotable_mix_train_dataset = MixedChartToTableDataset(charttotable_train_image_dir, charttotable_train_txt_dir, processor)
     # train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset, charttotable_train_dataset, charttotable_mix_train_dataset)
     # train_dataset = CombinedDataset(chartqa_train_dataset, plotqa_train_dataset)
     # train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
-    train_dataloader = DataLoader(plotqa_train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
+    # train_dataloader = DataLoader(plotqa_train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
     # chartqa_test_dataset = ImageCaptioningDataset(chartqa_test_image_dir, chartqa_test_csv_dir, processor)
-    plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
+    # plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
     # charttotable_mix_test_dataset = MixedChartToTableDataset(charttotable_mix_test_image_dir, charttotable_mix_test_txt_dir, processor)
     # test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset, charttotable_mix_test_dataset)
     # test_dataset = CombinedDataset(chartqa_test_dataset, plotqa_test_dataset)
     # chartqa_test_dataloader = DataLoader(chartqa_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    plotqa_test_dataloader = DataLoader(plotqa_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    epochs = 3
+    # plotqa_test_dataloader = DataLoader(plotqa_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
+    # epochs = 3
     # train(model, epochs, train_dataloader)
     # test(model, plotqa_test_dataloader)
     #============================#
@@ -452,62 +452,73 @@ if __name__ == "__main__":
     # variable_train_json_dir = "/root/다양한 형태의 한글 문자 OCR/Chunk_Training/json"
     # variable_test_image_dir = "/root/다양한 형태의 한글 문자 OCR/Chunk_Validation/jpg"
     # variable_test_json_dir = "/root/다양한 형태의 한글 문자 OCR/Chunk_Validation/json"
-    kostat_train_image_dir = "/root/inference/train_data/kostat/contents/train/image"
-    kostat_train_json_dir = "/root/inference/train_data/kostat/contents/train/json"
-    kostat_test_image_dir = "/root/inference/train_data/kostat/contents/test/image"
-    kostat_test_json_dir = "/root/inference/train_data/kostat/contents/test/json"
+    # kostat_train_image_dir = "/root/inference/train_data/kostat/contents/train/image"
+    # kostat_train_json_dir = "/root/inference/train_data/kostat/contents/train/json"
+    # kostat_test_image_dir = "/root/inference/train_data/kostat/contents/test/image"
+    # kostat_test_json_dir = "/root/inference/train_data/kostat/contents/test/json"
     # public_train_dataset = OCRDataset(public_train_image_dir, public_train_json_dir, processor)
     # variable_train_dataset = OCRDataset(variable_train_image_dir, variable_train_json_dir, processor)
-    kostat_train_dataset = OCRDataset(kostat_train_image_dir, kostat_train_json_dir, processor)
+    # kostat_train_dataset = OCRDataset(kostat_train_image_dir, kostat_train_json_dir, processor)
     # train_dataset = CombinedDataset(public_train_dataset, variable_train_dataset)
-    train_dataloader = DataLoader(kostat_train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
+    # train_dataloader = DataLoader(kostat_train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
     # public_test_dataset = OCRDataset(public_test_image_dir, public_test_json_dir, processor)
     # variable_test_dataset = OCRDataset(variable_test_image_dir, variable_test_json_dir, processor)
-    kostat_test_dataset = OCRDataset(kostat_test_image_dir, kostat_test_json_dir, processor)
+    # kostat_test_dataset = OCRDataset(kostat_test_image_dir, kostat_test_json_dir, processor)
     # test_dataset = CombinedDataset(public_test_dataset, variable_test_dataset)
-    test_dataloader = DataLoader(kostat_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    epochs = 5
+    # test_dataloader = DataLoader(kostat_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
+    # epochs = 5
     # train(model, epochs, train_dataloader)
     # test(model, test_dataloader)
     #============================#
 
     # for PlotQA & KostatOCR
     #============================#
-    plotqa_train_image_dir="/root/PlotQA/data/translated_train/png"
-    plotqa_train_csv_dir="/root/PlotQA/data/translated_train/csv"
-    plotqa_test_image_dir="/root/PlotQA/data/translated_test/png"
-    plotqa_test_csv_dir="/root/PlotQA/data/translated_test/csv"
-    kostat_train_image_dir = "/root/inference/train_data/kostat/contents/train/image"
-    kostat_train_json_dir = "/root/inference/train_data/kostat/contents/train/json"
-    kostat_test_image_dir = "/root/inference/train_data/kostat/contents/test/image"
-    kostat_test_json_dir = "/root/inference/train_data/kostat/contents/test/json"
-    plotqa_train_dataset = ImageCaptioningDataset(plotqa_train_image_dir, plotqa_train_csv_dir, processor)
-    plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
-    kostat_train_dataset = OCRDataset(kostat_train_image_dir, kostat_train_json_dir, processor)
-    kostat_test_dataset = OCRDataset(kostat_test_image_dir, kostat_test_json_dir, processor)
-    train_dataset = CombinedDataset(plotqa_train_dataset, kostat_train_dataset)
-    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
+    # plotqa_train_image_dir="/root/PlotQA/data/translated_train/png"
+    # plotqa_train_csv_dir="/root/PlotQA/data/translated_train/csv"
+    # plotqa_test_image_dir="/root/PlotQA/data/translated_test/png"
+    # plotqa_test_csv_dir="/root/PlotQA/data/translated_test/csv"
+    # kostat_train_image_dir = "/root/inference/train_data/kostat/contents/train/image"
+    # kostat_train_json_dir = "/root/inference/train_data/kostat/contents/train/json"
+    # kostat_test_image_dir = "/root/inference/train_data/kostat/contents/test/image"
+    # kostat_test_json_dir = "/root/inference/train_data/kostat/contents/test/json"
+    # plotqa_train_dataset = ImageCaptioningDataset(plotqa_train_image_dir, plotqa_train_csv_dir, processor)
+    # plotqa_test_dataset = ImageCaptioningDataset(plotqa_test_image_dir, plotqa_test_csv_dir, processor)
+    # kostat_train_dataset = OCRDataset(kostat_train_image_dir, kostat_train_json_dir, processor)
+    # kostat_test_dataset = OCRDataset(kostat_test_image_dir, kostat_test_json_dir, processor)
+    # train_dataset = CombinedDataset(plotqa_train_dataset, kostat_train_dataset)
+    # train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
     # test_dataset = CombinedDataset(plotqa_test_dataset, kostat_test_dataset)
-    test_dataloader = DataLoader(plotqa_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    epochs = 2
+    # test_dataloader = DataLoader(plotqa_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
+    # epochs = 2
     # train(model, epochs, train_dataloader)
-    test(model, test_dataloader)
+    # test(model, test_dataloader)
 
     # for Partition
     #============================#
-    kostat_train_image_dir = "/root/part/part_image_cropped"
-    kostat_train_bbox_dir = "/root/part/part_txt"
-    kostat_train_part_dir = "/root/part/part_label"
-    kostat_test_image_dir = "/root/part/test_part_image_cropped"
-    kostat_test_bbox_dir = "/root/part/test_part_txt"
-    kostat_test_part_dir = "/root/part/test_part_label"
+    # kostat_train_image_dir = "/root/part/part_image_cropped"
+    # kostat_train_bbox_dir = "/root/part/part_txt"
+    # kostat_train_part_dir = "/root/part/part_label"
+    # kostat_test_image_dir = "/root/part/test_part_image_cropped"
+    # kostat_test_bbox_dir = "/root/part/test_part_txt"
+    # kostat_test_part_dir = "/root/part/test_part_label"
 
-    kostat_train_dataset = PartitionDataset(kostat_train_image_dir, kostat_train_bbox_dir, kostat_train_part_dir, processor)
-    kostat_test_dataset = PartitionDataset(kostat_test_image_dir, kostat_test_bbox_dir, kostat_test_part_dir, processor)
-    train_dataloader = DataLoader(kostat_train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
-    test_dataloader = DataLoader(kostat_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
-    epochs = 50
+    # kostat_train_dataset = PartitionDataset(kostat_train_image_dir, kostat_train_bbox_dir, kostat_train_part_dir, processor)
+    # kostat_test_dataset = PartitionDataset(kostat_test_image_dir, kostat_test_bbox_dir, kostat_test_part_dir, processor)
+    # train_dataloader = DataLoader(kostat_train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
+    # test_dataloader = DataLoader(kostat_test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
+    # epochs = 50
     # train(model, epochs, train_dataloader)
     # test(model, test_dataloader)
     #============================#
     
+    # train_image_dir="/root/deplot/only_graph"
+    # train_csv_dir="/root/deplot/only_graph_label"
+    # test_image_dir="/root/deplot/only_graph"
+    # test_csv_dir="/root/deplot/only_graph_label"
+    # train_dataset = ImageCaptioningDataset(train_image_dir, train_csv_dir, processor)
+    # train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=2, collate_fn=collator, num_workers=4)
+    # test_dataset = ImageCaptioningDataset(test_image_dir, test_csv_dir, processor)
+    # test_dataloader = DataLoader(test_dataset, shuffle=False, batch_size=1, collate_fn=collator, num_workers=4)
+    # epochs = 50
+    # train(model, epochs, train_dataloader)
+    # test(model, test_dataloader)
